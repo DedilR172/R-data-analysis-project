@@ -1,0 +1,174 @@
+---
+title: "Assignment 4_Part1"
+author: "DevikaRanjith"
+date: "2025-10-05"
+output:
+  html_document: default
+  pdf_document: default
+---
+#Part1-gene expression
+#paths
+```{r}
+infile <- "data/gene_expression.tsv"
+outdirT <- "output"
+outdirF <- "figures"
+#download gene_expression.tsv 
+download.file(
+  url = "https://raw.githubusercontent.com/ghazkha/Assessment4/main/gene_expression.tsv",
+  destfile = "gene_expression.tsv")
+```
+#Q1- read (gene IDs as rownames)
+```{r}
+infile <- "gene_expression.tsv"
+
+gene_expr <- read.table(infile, header = TRUE, sep = "\t", row.names = 1, check.names = FALSE)
+
+head(gene_expr)
+
+```
+#Q2-first six genes
+```{r}
+# Ensure output directory exists
+dir.create(outdirT, showWarnings = FALSE)
+
+# Add a new column with the mean expression across all samples
+gene_expr$mean_expr <- rowMeans(gene_expr)
+
+# Display the first six rows in R
+head(gene_expr)
+
+```
+#Q3- 10 genes with the highest mean expression
+```{r}
+# Sort the genes by mean expression in descending order
+top10_genes <- gene_expr[order(gene_expr$mean_expr, decreasing = TRUE), ]
+
+# Select only the top 10
+top10_genes <- head(top10_genes, 10)
+
+# Display the result
+top10_genes
+
+```
+#Q4-Number of genes with the mean <10
+```{r}
+# Count how many genes have a mean expression less than 10
+num_genes_low <- sum(gene_expr$mean_expr < 10)
+
+# Display the result
+num_genes_low
+
+```
+#Q5- Histogram plot
+```{r}
+# Ensure figures directory exists
+dir.create(outdirF, showWarnings = FALSE)
+
+# Create histogram of mean expression
+hist(
+  gene_expr$mean_expr,
+  breaks = 20,                    # number of bins
+  col = "steelblue",              # fill color
+  border = "black",               # border color
+  main = "Distribution of Mean Gene Expression",
+  xlab = "Mean Expression",
+  ylab = "Number of Genes"
+)
+```
+##Part1- growth_data
+#computes summary stats, boxplots, 10yr growth, t-test
+```{r}
+# Define input and output file paths
+infile <- "growth_data.csv"     
+outdirT <- "output"
+outdirF <- "figures"
+#download gene_expression.tsv 
+download.file(
+  url = "https://raw.githubusercontent.com/ghazkha/Assessment4/main/growth_data.csv",
+  destfile = "growth_data.csv")
+# Read the CSV file
+growth <- read.csv(infile, stringsAsFactors = FALSE)
+
+```
+#Q6-Column names
+```{r}
+# Ensure output directory exists
+if (!dir.exists(outdirT)) {
+  dir.create(outdirT, recursive = TRUE)
+}
+# Write the column names to a CSV
+write.csv(as.data.frame(names(growth)),
+          file.path(outdirT, "q06_column_names.csv"),
+          row.names = FALSE)
+# Display the column names
+colnames(growth)
+```
+#Q7- Calculating mean and sd at start(2005) and end (2020) by site
+```{r}
+# Correct column names for aggregation
+start_col <- "Circumf_2005_cm"
+end_col   <- "Circumf_2020_cm"
+
+# Calculate mean circumference in 2005 and 2020 by Site
+mean_summary <- aggregate(cbind(Circumf_2005_cm, Circumf_2020_cm) ~ Site,
+                          data = growth, FUN = mean)
+
+# Calculate standard deviation for 2005 and 2020 by Site
+sd_summary <- aggregate(cbind(Circumf_2005_cm, Circumf_2020_cm) ~ Site,
+                        data = growth, FUN = sd)
+
+# Merge mean and SD tables
+summary_table <- merge(mean_summary, sd_summary, by = "Site", 
+                       suffixes = c("_Mean", "_SD"))
+
+# Ensure output directory exists
+if (!dir.exists(outdirT)) dir.create(outdirT, recursive = TRUE)
+
+# Write the summary table to CSV
+write.csv(summary_table, 
+          file.path(outdirT, "q07_mean_sd_2005_2020_by_site.csv"), 
+          row.names = FALSE)
+
+# Display the summary table
+summary_table
+
+```
+#Q8- Box plot
+```{r}
+
+# Set layout for two plots
+par(mfrow = c(1,2))
+
+# Boxplot for 2005
+boxplot(Circumf_2005_cm ~ Site, data = growth,main = "Circumference 2005",ylab = "cm",col = c("lightblue", "pink"))
+
+# Boxplot for 2020
+boxplot(Circumf_2020_cm ~ Site, data = growth,main = "Circumference 2020",ylab = "cm",col = c("lightblue", "pink"))
+# Save the boxplots as a PNG
+png(file.path(outdirF, "fig_q08_boxplot_2005_2020_by_site.png"), 
+    width = 1000, height = 600)
+# Close the PNG device to save the file
+dev.off()
+
+```
+#Q9-mean growth over the last 10 years at each site
+```{r}
+# Calculate growth over 10 years for each tree
+growth$Growth_2010_2020 <- growth$Circumf_2020_cm - growth$Circumf_2010_cm
+# Mean growth per Site
+mean_growth <- aggregate(Growth_2010_2020 ~ Site, data = growth, FUN = mean)
+mean_growth
+
+```
+#Q10- t.test to estimate the p-value 
+```{r}
+growth_control <- growth$Growth_2010_2020[growth$Site == "northeast"]
+growth_treatment <- growth$Growth_2010_2020[growth$Site == "southwest"]
+#Perform a two-sample t.test
+t_test_result <- t.test(growth_control, growth_treatment)
+t_test_result
+#Extract the p-values
+p_value <- t_test_result$p.value
+p_value
+
+```
