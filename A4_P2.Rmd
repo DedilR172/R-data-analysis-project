@@ -1,0 +1,422 @@
+---
+title: "Assignment 4_Part2"
+author: "DevikaRanjith"
+date: "2025-10-06"
+output: html_document
+---
+#Q1-Loading packages
+```{r}
+suppressPackageStartupMessages({
+  library("seqinr") # is a package designed to process and analyse sequence data.
+  library("R.utils") # general utilities like zip and unzip
+  library(knitr)
+})
+
+```
+#Download and extract E.coli sequence data
+```{r}
+library("R.utils")
+ecoli_URL <- "http://ftp.ensemblgenomes.org/pub/bacteria/release-53/fasta/bacteria_0_collection/escherichia_coli_str_k_12_substr_mg1655_gca_000005845/cds/Escherichia_coli_str_k_12_substr_mg1655_gca_000005845.ASM584v2.cds.all.fa.gz"
+download.file(ecoli_URL,destfile="ecoli_cds.fa.gz" , quiet = TRUE)
+#gunzip("ecoli_cds.fa.gz" , overwrite = TRUE)
+
+```
+# Read E. coli coding sequences
+```{r}
+cds_ecoli <- read.fasta("ecoli_cds.fa")
+num_ecoli_cds <- length(cds_ecoli)
+num_ecoli_cds
+
+```
+#Download and extract Campylobacter coli (GCA_003780985) sequence data
+```{r}
+campy_URL <- "https://ftp.ensemblgenomes.ebi.ac.uk/pub/bacteria/release-62/fasta/bacteria_46_collection/campylobacter_coli_gca_003780985/cds/Campylobacter_coli_gca_003780985.PDT000395653.1.cds.all.fa.gz"
+download.file(campy_URL, destfile = "campylobacter_coli_cds.fa.gz" , quiet = TRUE)
+gunzip("campylobacter_coli_cds.fa.gz" , overwrite = TRUE)
+#Read Campylobacter coli coding sequences
+cds_campy <- read.fasta("campylobacter_coli_cds.fa")
+num_campy_cds <- length(cds_campy)
+num_campy_cds
+
+```
+#Summary table of coding sequences
+```{r}
+# Combine into a summary table
+cds_summary <- data.frame(
+  Organism = c("Escherichia coli (K-12 substr. MG1655)", "Campylobacter coli (GCA_003780985)"),
+  CDS_Count = c(num_ecoli_cds, num_campy_cds)
+)
+
+kable(cds_summary, caption = "Comparison of Coding DNA Sequences (CDS) between E. coli and C. coli")
+
+```
+#Description of differences
+```{r}
+cat("
+**Observations and Differences:**
+- *Escherichia coli* has 4239 coding sequences, whereas *Campylobacter coli* has 1976 coding sequences. This indicates that *E. coli* has more than twice as many genes coding for proteins compared to *C. coli*. The higher number of coding sequences in *E. coli* reflects its larger genome (~4.6 Mbp) and greater metabolic versatility, enabling it to survive in diverse environments such as soil, water, and the mammalian gut. *Campylobacter coli*, with fewer coding sequences and a smaller genome (~1.7 Mbp), is more specialized for host-associated, microaerophilic environments.
+")
+
+```
+#Q2-Total coding DNA for the two organisms
+```{r}
+# Calculate total number of CDS for each organism
+num_ecoli_cds <- length(cds_ecoli)
+num_campy_cds <- length(cds_campy)
+
+# Calculate total coding DNA length (in base pairs)
+total_ecoli_bp <- sum(sapply(cds_ecoli, length))
+total_campy_bp <- sum(sapply(cds_campy, length))
+
+# Create a summary table
+cds_summary <- data.frame(
+  Organism = c("Escherichia coli (K-12 substr. MG1655)",
+               "Campylobacter coli (GCA_003780985)"),
+  `Number of CDS` = c(num_ecoli_cds, num_campy_cds),
+  `Total Coding DNA (bp)` = c(total_ecoli_bp, total_campy_bp)
+)
+# Display as a table
+knitr::kable(cds_summary, caption = "Comparison of Coding DNA Sequences Between E. coli and C. coli")
+
+```
+#Description of differences
+```{r}
+cat("
+**Observations and Differences:**
+
+- *Escherichia coli* has 4239 coding sequences totaling 3,978,528 bp of coding DNA, whereas *Campylobacter coli* has 1976 coding sequences totaling 1,726,818 bp. This shows that *E. coli* has more than twice the number of coding sequences and more than twice the total coding DNA compared to *C. coli*. The higher number and total length of coding sequences in *E. coli* reflect its larger genome (~4.6 Mbp) and greater metabolic versatility, allowing it to adapt to a variety of environments such as soil, water, and the mammalian gut. *C. coli*, with fewer and shorter coding sequences, has a smaller genome (~1.7 Mbp) optimized for a host-associated, microaerophilic lifestyle.
+")
+
+```
+#Q3-Calculating CDS lengths, making a boxplot and finding mean and median
+```{r}
+
+# Get the length of each coding sequence for both organisms
+ecoli_lengths <- sapply(cds_ecoli, length)
+campy_lengths <- sapply(cds_campy, length)
+
+# Combine into one data frame for comparison
+cds_lengths_df <- data.frame(
+  Organism = rep(c("Escherichia coli", "Campylobacter coli"),
+                 times = c(length(ecoli_lengths), length(campy_lengths))),
+  CDS_Length = c(ecoli_lengths, campy_lengths)
+)
+# Get CDS lengths for both organisms
+len_ecoli <- as.numeric(summary(cds_ecoli)[,1])
+len_campy <- as.numeric(summary(cds_campy)[,1])
+
+# Combine into one data frame with species labels
+cds_lengths <- data.frame(
+  Length = c(len_ecoli, len_campy),
+  Organism = c(rep("E. coli K-12 MG1655", length(len_ecoli)),
+               rep("Campylobacter coli", length(len_campy)))
+)
+
+```
+#Make a boxplot
+```{r}
+cds_lengths_df$Organism <- factor(cds_lengths_df$Organism,
+                                  levels = c("Escherichia coli", "Campylobacter coli"))
+
+boxplot(CDS_Length ~ Organism, data = cds_lengths_df,
+        ylab = "Sequence length (bp)",
+        xlab = "Organism",
+        main = "Coding Sequence Lengths in Two Bacterial Genomes",
+        col = c("lightblue", "lightgreen"))
+
+```
+#Mean and Median coding sequence length
+```{r}
+# --- E. coli ---
+mean_ecoli <- mean(len_ecoli)
+median_ecoli <- median(len_ecoli)
+
+# --- Campylobacter coli ---
+mean_campy <- mean(len_campy)
+median_campy <- median(len_campy)
+
+# Combine results into a table
+cds_stats <- data.frame(
+  Organism = c("Escherichia coli K-12 MG1655", "Campylobacter coli"),
+  Mean_CDS_length = c(mean_ecoli, mean_campy),
+  Median_CDS_length = c(median_ecoli, median_campy)
+)
+print(cds_stats)
+
+```
+#Description of differences
+```{r}
+cat("
+**Observations and Differences Between E. coli and C. coli:**
+
+- *Escherichia coli* K-12 MG1655 has a mean CDS length of ~939 bp and a median of 831 bp.  *Campylobacter coli* has a mean CDS length of ~874 bp and a median of 750 bp. This shows that *E. coli* coding sequences are, on average, slightly longer than those of *C. coli*. The higher mean and median in *E. coli* reflect its larger, more complex genome (~4.6 Mbp) and broader metabolic capabilities. *C. coli* has shorter coding sequences on average, consistent with its smaller genome (~1.7 Mbp) and streamlined, host-adapted lifestyle. Overall, *E. coli* has slightly longer and more variable coding sequences, indicating a more diverse protein repertoire compared to *C. coli*.
+")
+
+```
+#Q4-Comparative Analysis of Nucleotide and Amino Acid Frequencies in Coding and Protein Sequences of Two Organisms
+```{r}
+# =============================
+# 1. DNA Base Frequency
+# =============================
+
+# Combine all CDS sequences into a single vector
+dna_ecoli <- unlist(cds_ecoli)
+dna_campy <- unlist(cds_campy)
+
+# Count nucleotides for each organism
+dna_counts_ecoli <- count(dna_ecoli, 1)
+dna_counts_campy <- count(dna_campy, 1)
+
+# Compute relative frequencies
+dna_freq_ecoli <- dna_counts_ecoli / sum(dna_counts_ecoli)
+dna_freq_campy <- dna_counts_campy / sum(dna_counts_campy)
+
+# Display frequencies
+dna_freq_ecoli
+dna_freq_campy
+
+# =============================
+# 2. Protein Sequence Frequency
+# =============================
+
+# Translate CDS sequences to protein
+prot_ecoli <- lapply(cds_ecoli, translate)
+prot_campy <- lapply(cds_campy, translate)
+
+# Flatten lists and remove stop codons
+prot_ecoli_all <- unlist(prot_ecoli)
+prot_ecoli_all <- prot_ecoli_all[prot_ecoli_all != "*"]
+
+prot_campy_all <- unlist(prot_campy)
+prot_campy_all <- prot_campy_all[prot_campy_all != "*"]
+
+# All 20 amino acids
+aa <- c("A","C","D","E","F","G","H","I","K","L",
+        "M","N","P","Q","R","S","T","V","W","Y")
+
+# Count amino acids
+aa_counts_ecoli <- count(prot_ecoli_all, 1, alphabet = aa)
+aa_counts_campy <- count(prot_campy_all, 1, alphabet = aa)
+
+# Compute relative frequencies
+aa_freq_ecoli <- aa_counts_ecoli / sum(aa_counts_ecoli)
+aa_freq_campy <- aa_counts_campy / sum(aa_counts_campy)
+
+# Display frequencies
+aa_freq_ecoli
+aa_freq_campy
+
+# =============================
+# 3. Bar Plot for DNA Base Frequency
+# =============================
+
+par(mfrow = c(1,2))  # Side-by-side plots
+
+barplot(dna_freq_ecoli,
+        main = "E. coli DNA Base Frequency",
+        xlab = "Nucleotide", ylab = "Frequency",
+        col = c("lightblue","pink","lightgreen","yellow"))
+grid()
+
+barplot(dna_freq_campy,
+        main = "C. coli DNA Base Frequency",
+        xlab = "Nucleotide", ylab = "Frequency",
+        col = c("lightblue","pink","lightgreen","yellow"))
+grid()
+
+# =============================
+# 4. Bar Plot for Amino Acid Frequency
+# =============================
+
+par(mfrow = c(1,2))  # Side-by-side plots
+
+barplot(aa_freq_ecoli,
+        main = "E. coli Amino Acid Frequency",
+        xlab = "Amino Acid", ylab = "Frequency",
+        col = rainbow(20))
+grid()
+
+barplot(aa_freq_campy,
+        main = "C. coli Amino Acid Frequency",
+        xlab = "Amino Acid", ylab = "Frequency",
+        col = rainbow(20))
+grid()
+
+```
+#Describing the differences
+```{r}
+cat(" **DNA Base Frequencies:**
+- *Escherichia coli* shows a slightly higher G+C content in its coding sequences compared to *Campylobacter coli*. *C. coli* has a slightly higher A+T content, reflecting its smaller, host-adapted genome. Overall, the nucleotide compositions of both organisms are similar, but the subtle differences may influence codon usage and genome stability.
+**Amino Acid Frequencies:**
+- The proteins of *E. coli* and *C. coli* use the same set of 20 amino acids, but their relative proportions differ slightly.  *E. coli* has a slightly higher frequency of leucine, alanine, and glycine, which may reflect its broader metabolic versatility and larger genome size. *C. coli* proteins show slightly higher proportions of certain polar or small amino acids, consistent with adaptation to a microaerophilic, host-associated lifestyle.  These differences indicate that *E. coli* has a more diverse protein repertoire, while *C. coli* exhibits a streamlined amino acid usage pattern optimized for its specialized environment.
+
+ ")
+```
+```{r}
+#Loading E.coli into R 
+if(!file.exists("ecoli_cds.fa")){
+  download.file("http://ftp.ensemblgenomes.org/pub/bacteria/release-53/fasta/bacteria_0_collection/escherichia_coli_str_k_12_substr_mg1655_gca_000005845/cds/Escherichia_coli_str_k_12_substr_mg1655_gca_000005845.ASM584v2.cds.all.fa.gz",
+                destfile="ecoli_cds.fa.gz")
+  R.utils::gunzip("ecoli_cds.fa.gz", overwrite = TRUE)
+}
+ecoli_cds <- read.fasta("ecoli_cds.fa")
+length(ecoli_cds)
+
+#Loading C.coli into R
+if(!file.exists("campy_cds.fa")){
+  download.file(
+    "https://ftp.ensemblgenomes.ebi.ac.uk/pub/bacteria/release-62/fasta/bacteria_46_collection/campylobacter_coli_gca_003780985/cds/Campylobacter_coli_gca_003780985.PDT000395653.1.cds.all.fa.gz",
+    destfile = "campy_cds.fa.gz"
+  )
+  R.utils::gunzip("campy_cds.fa.gz", overwrite = TRUE)
+}
+library(seqinr)
+ccoli_cds <- read.fasta("campy_cds.fa")
+length(ccoli_cds)
+```
+#Q5-Analysing codon usage bias
+```{r}
+library(seqinr)
+
+# ------------------------
+# 1. Combine all CDS into a single sequence for E. coli
+# ------------------------
+ecoli_total <- unlist(ecoli_cds)  # flatten list into a single vector
+
+# ------------------------
+# 2. Create codon usage table for E. coli
+# ------------------------
+ecoli_codon_usage <- uco(ecoli_total)
+ecoli_codon_usage_sorted <- sort(ecoli_codon_usage, decreasing = TRUE)  # sort by frequency
+
+# View top codons
+head(ecoli_codon_usage_sorted, 10)
+
+# ------------------------
+# 3. Bar plot for E. coli codon usage
+# ------------------------
+barplot(ecoli_codon_usage_sorted,
+        las = 2,               # rotate codon names
+        cex.names = 0.7,       # size of codon names
+        col = "lightblue",
+        main = "E. coli Codon Usage Frequency",
+        ylab = "Frequency")
+
+# ------------------------
+# 4. Repeat the same for C. coli
+# ------------------------
+# Make sure C. coli CDS is loaded as 'ccoli_cds'
+# Flatten list into single vector
+ccoli_total <- unlist(ccoli_cds)
+
+# Create codon usage table
+ccoli_codon_usage <- uco(ccoli_total)
+ccoli_codon_usage_sorted <- sort(ccoli_codon_usage, decreasing = TRUE)
+
+# View top codons
+head(ccoli_codon_usage_sorted, 10)
+
+# Bar plot for C. coli codon usage
+barplot(ccoli_codon_usage_sorted,
+        las = 2,
+        cex.names = 0.7,
+        col = "lightgreen",
+        main = "C. coli Codon Usage Frequency",
+        ylab = "Frequency")
+
+```
+#Describing differences
+```{r}
+cat(" **Codon Usage Bias Comparison**
+
+Analysis of codon usage among all coding sequences of *Escherichia coli* and *Campylobacter coli* reveals notable differences. *E. coli* exhibits a preference for codons with G or C at the third position, reflecting its higher genomic GC content, whereas *C. coli* tends to favor codons ending in A or T, consistent with a lower GC content. Amino acids with multiple synonymous codons, such as leucine, serine, and arginine, show organism-specific preferences: for example, *E. coli* predominantly uses CTG for leucine and CGT/CGC for arginine, while *C. coli* favors TTA/TTA for leucine and AGA/AGG for arginine. These differences are clearly visualized in codon frequency bar plots, highlighting the codon usage bias and its potential impact on translation efficiency and gene expression between the two organisms.
+")
+```
+#-Q6 K-mer profiling and analysis
+```{r}
+# Comparative K-mer Profiling: Campylobacter coli vs. E. coli
+# Define amino acid alphabet
+aa <- c("A","C","D","E","F","G","H","I","K","L",
+        "M","N","P","Q","R","S","T","V","W","Y")
+
+# Combine all protein sequences for both organisms
+prot_campy_all <- unlist(prot_campy)
+prot_campy_all <- prot_campy_all[prot_campy_all != "*"]
+
+prot_ecoli_all <- unlist(prot_ecoli)
+prot_ecoli_all <- prot_ecoli_all[prot_ecoli_all != "*"]
+
+# --- Set k values ---
+k_values <- 3:5
+kmer_compare_results <- list()
+
+for (k in k_values) {
+  message("Analyzing k = ", k)
+  
+  # Campylobacter coli
+  kmer_freq_campy <- count(prot_campy_all, wordsize = k, alphabet = aa, freq = TRUE)
+  df_campy <- data.frame(Kmer = names(kmer_freq_campy),
+                         C_coli_Freq = as.numeric(kmer_freq_campy))
+  
+  # E. coli
+  kmer_freq_ecoli <- count(prot_ecoli_all, wordsize = k, alphabet = aa, freq = TRUE)
+  df_ecoli <- data.frame(Kmer = names(kmer_freq_ecoli),
+                         E_coli_Freq = as.numeric(kmer_freq_ecoli))
+  
+  # Merge the two data frames for direct comparison
+  merged_df <- merge(df_campy, df_ecoli, by = "Kmer", all = TRUE)
+  merged_df[is.na(merged_df)] <- 0  # replace missing with 0
+  
+  # Compute difference (C. coli frequency - E. coli frequency)
+  merged_df$Diff <- merged_df$C_coli_Freq - merged_df$E_coli_Freq
+  
+  # Identify top 10 over- and under-represented in C. coli
+  top_over <- head(merged_df[order(-merged_df$C_coli_Freq), ], 10)
+  top_under <- head(merged_df[order(merged_df$C_coli_Freq), ], 10)
+  
+  # Store results
+  kmer_compare_results[[paste0("k", k)]] <- list(over = top_over, under = top_under)
+  
+  # --- Plot comparisons ---
+  par(mfrow = c(2, 1))
+  
+  barplot(
+    height = rbind(top_over$C_coli_Freq, top_over$E_coli_Freq),
+    beside = TRUE,
+    names.arg = top_over$Kmer,
+    las = 2,
+    col = c("lightgreen", "skyblue"),
+    main = paste("Top 10 Overrepresented", k, "-mers in Campylobacter coli"),
+    ylab = "Relative Frequency"
+  )
+  legend("topright", legend = c("C. coli", "E. coli"),
+         fill = c("lightgreen", "skyblue"), cex = 0.8)
+  
+  barplot(
+    height = rbind(top_under$C_coli_Freq, top_under$E_coli_Freq),
+    beside = TRUE,
+    names.arg = top_under$Kmer,
+    las = 2,
+    col = c("lightpink", "lightblue"),
+    main = paste("Top 10 Underrepresented", k, "-mers in Campylobacter coli"),
+    ylab = "Relative Frequency"
+  )
+  legend("topright", legend = c("C. coli", "E. coli"),
+         fill = c("lightpink", "lightblue"), cex = 0.8)
+}
+
+# --- Display tables for k = 3 ---
+knitr::kable(kmer_compare_results$k3$over,
+             caption = "Top 10 Overrepresented 3-mers in C. coli Compared with E. coli")
+knitr::kable(kmer_compare_results$k3$under,
+             caption = "Top 10 Underrepresented 3-mers in C. coli Compared with E. coli")
+
+```
+#Explanation
+```{r}
+cat(" **K-mer Profiling Comparison: Campylobacter coli vs. Escherichia coli**
+The *Campylobacter coli* proteome shows distinctive k-mer enrichment patterns. The most overrepresented motifs (e.g., 'AAA', 'AAL', 'GAA', 'LAA') are rich in alanine and leucine, amino acids that often occur in α-helices and transmembrane regions. These k-mers are less frequent in *E. coli*, indicating organism-specific sequence preferences possibly related to the more compact and specialized *C. coli* proteome.Conversely, *C. coli* underrepresented motifs (e.g., 'WYR', 'CCH', 'RWC') contain rare or bulky residues such as tryptophan or cysteine, which may be avoided to reduce metabolic cost or maintain protein stability in its microaerophilic niche.Comparison plots show that *E. coli* maintains a broader and more even k-mer frequency distribution, reflecting its larger genome and more functionally diverse proteome.
+**Overall Observation:**
+Overrepresented *C. coli* k-mers are not equally abundant in *E. coli*, highlighting evolutionary and environmental divergence between the two species. The underrepresented *C. coli* motifs are generally present at higher frequencies in *E. coli*, supporting the idea that *C. coli* has undergone streamlining of sequence composition for niche adaptation.
+ ")
+```
